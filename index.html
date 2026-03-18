@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wedding RSVP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="card">
+        <p class="eyebrow">Marriage Invitation</p>
+        <h1>婚禮 RSVP 回覆表單</h1>
+        <p class="intro">請填寫以下資訊，幫助我們安排座位與餐點。資料會安全儲存於報名系統。</p>
+
+        <form id="rsvp-form" novalidate>
+          <label for="name">姓名 *</label>
+          <input id="name" name="name" type="text" maxlength="50" required />
+
+          <label for="phone">手機號碼 *</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            placeholder="09xxxxxxxx"
+            required
+          />
+
+          <label for="attendees">出席人數 *</label>
+          <input id="attendees" name="attendees" type="number" min="1" max="10" value="1" required />
+
+          <label for="dietary">飲食需求</label>
+          <input id="dietary" name="dietary" type="text" maxlength="80" placeholder="例如：全素 / 不吃牛" />
+
+          <label for="note">備註</label>
+          <textarea id="note" name="note" rows="3" maxlength="300" placeholder="想對我們說的話"></textarea>
+
+          <div class="honeypot" aria-hidden="true">
+            <label for="website">Website</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <button id="submit-btn" type="submit">送出回覆</button>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./assets/config.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>
