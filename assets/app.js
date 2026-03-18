@@ -1,9 +1,12 @@
 (() => {
-  const form = document.getElementById("rsvp-form");
-  const statusEl = document.getElementById("status");
-  const submitBtn = document.getElementById("submit-btn");
+  const submitBtn = document.querySelector('a[href^="xiumish://form.opera/cubes/current/submit"]');
+  const nameEl = document.querySelector('input[name="name"]');
+  const phoneEl = document.querySelector('input[name="phone"]');
+  const attendeesEl = document.querySelector('input[name="attendees"]');
+  const dietaryEl = document.querySelector('input[name="dietary"]');
+  const noteEl = document.querySelector('textarea[name="note"]');
 
-  if (!form || !statusEl || !submitBtn) {
+  if (!submitBtn || !nameEl || !phoneEl || !attendeesEl || !noteEl) {
     return;
   }
 
@@ -14,33 +17,28 @@
   const cooldownMs = Number(config.COOLDOWN_MS) || 15000;
   const cooldownKey = "rsvp_last_submit_at";
 
+  let statusEl = document.getElementById("rsvp-status");
+  if (!statusEl) {
+    statusEl = document.createElement("div");
+    statusEl.id = "rsvp-status";
+    statusEl.style.marginTop = "8px";
+    statusEl.style.textAlign = "center";
+    statusEl.style.fontSize = "14px";
+    statusEl.style.color = "rgb(144, 52, 1)";
+    submitBtn.parentElement.appendChild(statusEl);
+  }
+
   function setStatus(message, type) {
     statusEl.textContent = message;
-    statusEl.classList.remove("error", "ok");
-    if (type) {
-      statusEl.classList.add(type);
-    }
+    statusEl.style.color = type === "ok" ? "rgb(42, 120, 58)" : "rgb(144, 52, 1)";
   }
 
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("YOUR-PROJECT-ID")) {
     setStatus("請先在 assets/config.js 填入 Supabase 連線資訊。", "error");
-    submitBtn.disabled = true;
+    submitBtn.style.pointerEvents = "none";
+    submitBtn.style.opacity = "0.6";
     return;
   }
-
-  if (!window.supabase || !window.supabase.createClient) {
-    setStatus("Supabase SDK 載入失敗，請稍後再試。", "error");
-    submitBtn.disabled = true;
-    return;
-  }
-
-  const client = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
 
   function normalizeText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
@@ -59,14 +57,6 @@
       return "出席人數需為 1 到 10 的整數。";
     }
 
-    if (payload.dietary && payload.dietary.length > 80) {
-      return "飲食需求不得超過 80 字。";
-    }
-
-    if (payload.note && payload.note.length > 300) {
-      return "備註不得超過 300 字。";
-    }
-
     return null;
   }
 
@@ -79,17 +69,10 @@
     return Date.now() - last < cooldownMs;
   }
 
-  form.addEventListener("submit", async (event) => {
+  submitBtn.addEventListener("click", async (event) => {
     event.preventDefault();
 
-    if (submitBtn.disabled) {
-      return;
-    }
-
-    const formData = new FormData(form);
-
-    if (normalizeText(formData.get("website"))) {
-      setStatus("已收到回覆，謝謝你。", "ok");
+    if (submitBtn.dataset.submitting === "1") {
       return;
     }
 
@@ -99,11 +82,11 @@
     }
 
     const payload = {
-      name: normalizeText(formData.get("name")),
-      phone: normalizeText(formData.get("phone")).replace(/[^\d]/g, ""),
-      attendees: Number(formData.get("attendees")),
-      dietary: normalizeText(formData.get("dietary")) || null,
-      note: normalizeText(formData.get("note")) || null,
+      name: normalizeText(nameEl.value),
+      phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
+      attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
+      dietary: normalizeText(dietaryEl ? dietaryEl.value : "") || null,
+      note: normalizeText(noteEl.value) || null,
     };
 
     const validationError = validate(payload);
@@ -112,28 +95,43 @@
       return;
     }
 
-    submitBtn.disabled = true;
+    submitBtn.dataset.submitting = "1";
+    submitBtn.style.pointerEvents = "none";
+    submitBtn.style.opacity = "0.6";
     setStatus("資料送出中，請稍候...");
 
     try {
-      const { error } = await client.from(tableName).insert(payload);
-      if (error) {
-        throw error;
+      const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+        method: "POST",
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || `HTTP ${response.status}`);
       }
 
       localStorage.setItem(cooldownKey, String(Date.now()));
-      form.reset();
-      const attendeesInput = document.getElementById("attendees");
-      if (attendeesInput) {
-        attendeesInput.value = "1";
-      }
+      nameEl.value = "";
+      phoneEl.value = "";
+      attendeesEl.value = "";
+      if (dietaryEl) dietaryEl.value = "";
+      noteEl.value = "";
 
       setStatus("送出成功，謝謝你的回覆。", "ok");
     } catch (error) {
       console.error("RSVP submit failed:", error);
       setStatus("送出失敗，請確認設定或稍後再試。", "error");
     } finally {
-      submitBtn.disabled = false;
+      submitBtn.dataset.submitting = "0";
+      submitBtn.style.pointerEvents = "";
+      submitBtn.style.opacity = "";
     }
   });
 })();
