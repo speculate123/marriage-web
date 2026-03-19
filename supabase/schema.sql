@@ -8,7 +8,6 @@ create table if not exists public.rsvp_submissions (
   dietary text,
   special_request text,
   blessing text,
-  note text,
   created_at timestamptz not null default now()
 );
 

@@ -156,7 +156,6 @@
           dietary: payload.dietary,
           special_request: payload.specialRequest,
           blessing: payload.blessing,
-          note: payload.specialRequest,
         }),
       });
 
