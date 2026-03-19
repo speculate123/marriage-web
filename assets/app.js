@@ -2,11 +2,25 @@
   const submitBtn = document.querySelector('a[href^="xiumish://form.opera/cubes/current/submit"]');
   const nameEl = document.querySelector('input[name="name"]');
   const phoneEl = document.querySelector('input[name="phone"]');
-  const attendeesEl = document.querySelector('input[name="attendees"]');
-  const dietaryEl = document.querySelector('input[name="dietary"]');
-  const noteEl = document.querySelector('textarea[name="note"]');
+  const emailEl = document.querySelector('input[name="email"]');
+  const attendeesEl = document.querySelector('select[name="attendees"]');
+  const mealEls = document.querySelectorAll('input[name="meal_choice"]');
+  const dietaryEls = document.querySelectorAll('input[name="dietary"]');
+  const dietaryOtherEl = document.querySelector('input[name="dietary_other"]');
+  const specialRequestEl = document.querySelector('textarea[name="special_request"]');
+  const blessingEl = document.querySelector('textarea[name="blessing"]');
 
-  if (!submitBtn || !nameEl || !phoneEl || !attendeesEl || !noteEl) {
+  if (
+    !submitBtn ||
+    !nameEl ||
+    !phoneEl ||
+    !emailEl ||
+    !attendeesEl ||
+    !mealEls.length ||
+    !dietaryEls.length ||
+    !specialRequestEl ||
+    !blessingEl
+  ) {
     return;
   }
 
@@ -53,8 +67,24 @@
       return "手機格式錯誤，請輸入 09 開頭的 10 碼號碼。";
     }
 
-    if (!Number.isInteger(payload.attendees) || payload.attendees < 1 || payload.attendees > 10) {
-      return "出席人數需為 1 到 10 的整數。";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      return "電子郵件格式錯誤。";
+    }
+
+    if (!Number.isInteger(payload.attendees) || payload.attendees < 1 || payload.attendees > 5) {
+      return "出席人數需為 1 到 5。";
+    }
+
+    if (!payload.mealChoice) {
+      return "請選擇餐點。";
+    }
+
+    if (!payload.dietary) {
+      return "請選擇飲食需求。";
+    }
+
+    if (payload.dietary === "其他" && !payload.dietaryOther) {
+      return "飲食需求選擇「其他」時，請填寫內容。";
     }
 
     return null;
@@ -81,12 +111,20 @@
       return;
     }
 
+    const selectedMeal = normalizeText(document.querySelector('input[name="meal_choice"]:checked')?.value || "");
+    const selectedDietary = normalizeText(document.querySelector('input[name="dietary"]:checked')?.value || "");
+    const dietaryOther = normalizeText(dietaryOtherEl?.value || "");
+
     const payload = {
       name: normalizeText(nameEl.value),
       phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
+      email: normalizeText(emailEl.value).toLowerCase(),
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
-      dietary: normalizeText(dietaryEl ? dietaryEl.value : "") || null,
-      note: normalizeText(noteEl.value) || null,
+      mealChoice: selectedMeal || null,
+      dietary: selectedDietary === "其他" ? `其他：${dietaryOther}` : (selectedDietary || null),
+      dietaryOther: dietaryOther || null,
+      specialRequest: normalizeText(specialRequestEl.value) || null,
+      blessing: normalizeText(blessingEl.value) || null,
     };
 
     const validationError = validate(payload);
@@ -109,7 +147,17 @@
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: payload.name,
+          phone: payload.phone,
+          email: payload.email,
+          attendees: payload.attendees,
+          meal_choice: payload.mealChoice,
+          dietary: payload.dietary,
+          special_request: payload.specialRequest,
+          blessing: payload.blessing,
+          note: payload.specialRequest,
+        }),
       });
 
       if (!response.ok) {
@@ -120,9 +168,17 @@
       localStorage.setItem(cooldownKey, String(Date.now()));
       nameEl.value = "";
       phoneEl.value = "";
+      emailEl.value = "";
       attendeesEl.value = "";
-      if (dietaryEl) dietaryEl.value = "";
-      noteEl.value = "";
+      mealEls.forEach((el) => {
+        el.checked = false;
+      });
+      dietaryEls.forEach((el) => {
+        el.checked = false;
+      });
+      if (dietaryOtherEl) dietaryOtherEl.value = "";
+      specialRequestEl.value = "";
+      blessingEl.value = "";
 
       setStatus("送出成功，謝謝你的回覆。", "ok");
     } catch (error) {
