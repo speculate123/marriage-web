@@ -4,9 +4,10 @@
   const phoneEl = document.querySelector('input[name="phone"]');
   const emailEl = document.querySelector('input[name="email"]');
   const attendeesEl = document.querySelector('select[name="attendees"]');
-  const mealEls = document.querySelectorAll('input[name="meal_choice"]');
-  const dietaryEls = document.querySelectorAll('input[name="dietary"]');
-  const dietaryOtherEl = document.querySelector('input[name="dietary_other"]');
+  const beefCountEl = document.querySelector('select[name="beef_count"]');
+  const porkCountEl = document.querySelector('select[name="pork_count"]');
+  const vegetarianCountEl = document.querySelector('select[name="vegetarian_count"]');
+  const childMealCountEl = document.querySelector('select[name="child_meal_count"]');
   const specialRequestEl = document.querySelector('textarea[name="special_request"]');
   const blessingEl = document.querySelector('textarea[name="blessing"]');
 
@@ -16,8 +17,10 @@
     !phoneEl ||
     !emailEl ||
     !attendeesEl ||
-    !mealEls.length ||
-    !dietaryEls.length ||
+    !beefCountEl ||
+    !porkCountEl ||
+    !vegetarianCountEl ||
+    !childMealCountEl ||
     !specialRequestEl ||
     !blessingEl
   ) {
@@ -58,6 +61,33 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
+  function parseNonNegativeInt(value) {
+    const parsed = Number.parseInt(normalizeText(value), 10);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+  }
+
+  function setSelectOptions(selectEl, maxValue, nextValue) {
+    const safeMax = Math.max(0, maxValue);
+    const safeValue = Math.max(0, Math.min(nextValue, safeMax));
+    const optionsHtml = Array.from({ length: safeMax + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join("");
+    selectEl.innerHTML = optionsHtml;
+    selectEl.value = String(safeValue);
+  }
+
+  function syncMealOptions() {
+    const attendees = parseNonNegativeInt(attendeesEl.value);
+    const mealSelects = [beefCountEl, porkCountEl, vegetarianCountEl, childMealCountEl];
+
+    mealSelects.forEach((selectEl) => {
+      const otherTotal = mealSelects
+        .filter((el) => el !== selectEl)
+        .reduce((sum, el) => sum + parseNonNegativeInt(el.value), 0);
+      const maxForCurrent = Math.max(0, attendees - otherTotal);
+      const currentValue = parseNonNegativeInt(selectEl.value);
+      setSelectOptions(selectEl, maxForCurrent, currentValue);
+    });
+  }
+
   function validate(payload) {
     if (!payload.name || payload.name.length > 50) {
       return "姓名為必填，且不得超過 50 字。";
@@ -75,16 +105,25 @@
       return "出席人數需為 1 到 5。";
     }
 
-    if (!payload.mealChoice) {
-      return "請選擇餐點。";
+    if (
+      !Number.isInteger(payload.beefCount) ||
+      payload.beefCount < 0 ||
+      payload.beefCount > 5 ||
+      !Number.isInteger(payload.porkCount) ||
+      payload.porkCount < 0 ||
+      payload.porkCount > 5 ||
+      !Number.isInteger(payload.vegetarianCount) ||
+      payload.vegetarianCount < 0 ||
+      payload.vegetarianCount > 5 ||
+      !Number.isInteger(payload.childMealCount) ||
+      payload.childMealCount < 0 ||
+      payload.childMealCount > 5
+    ) {
+      return "餐點數量格式錯誤，請使用 0 到 5。";
     }
 
-    if (!payload.dietary) {
-      return "請選擇飲食需求。";
-    }
-
-    if (payload.dietary === "其他" && !payload.dietaryOther) {
-      return "飲食需求選擇「其他」時，請填寫內容。";
+    if (payload.beefCount + payload.porkCount + payload.vegetarianCount + payload.childMealCount !== payload.attendees) {
+      return "餐點總數需等於出席人數。";
     }
 
     return null;
@@ -99,6 +138,13 @@
     return Date.now() - last < cooldownMs;
   }
 
+  attendeesEl.addEventListener("change", syncMealOptions);
+  beefCountEl.addEventListener("change", syncMealOptions);
+  porkCountEl.addEventListener("change", syncMealOptions);
+  vegetarianCountEl.addEventListener("change", syncMealOptions);
+  childMealCountEl.addEventListener("change", syncMealOptions);
+  syncMealOptions();
+
   submitBtn.addEventListener("click", async (event) => {
     event.preventDefault();
 
@@ -111,18 +157,15 @@
       return;
     }
 
-    const selectedMeal = normalizeText(document.querySelector('input[name="meal_choice"]:checked')?.value || "");
-    const selectedDietary = normalizeText(document.querySelector('input[name="dietary"]:checked')?.value || "");
-    const dietaryOther = normalizeText(dietaryOtherEl?.value || "");
-
     const payload = {
       name: normalizeText(nameEl.value),
       phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
       email: normalizeText(emailEl.value).toLowerCase(),
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
-      mealChoice: selectedMeal || null,
-      dietary: selectedDietary === "其他" ? `其他：${dietaryOther}` : (selectedDietary || null),
-      dietaryOther: dietaryOther || null,
+      beefCount: Number.parseInt(normalizeText(beefCountEl.value), 10),
+      porkCount: Number.parseInt(normalizeText(porkCountEl.value), 10),
+      vegetarianCount: Number.parseInt(normalizeText(vegetarianCountEl.value), 10),
+      childMealCount: Number.parseInt(normalizeText(childMealCountEl.value), 10),
       specialRequest: normalizeText(specialRequestEl.value) || null,
       blessing: normalizeText(blessingEl.value) || null,
     };
@@ -152,8 +195,10 @@
           phone: payload.phone,
           email: payload.email,
           attendees: payload.attendees,
-          meal_choice: payload.mealChoice,
-          dietary: payload.dietary,
+          beef_count: payload.beefCount,
+          pork_count: payload.porkCount,
+          vegetarian_count: payload.vegetarianCount,
+          child_meal_count: payload.childMealCount,
           special_request: payload.specialRequest,
           blessing: payload.blessing,
         }),
@@ -169,13 +214,10 @@
       phoneEl.value = "";
       emailEl.value = "";
       attendeesEl.value = "";
-      mealEls.forEach((el) => {
-        el.checked = false;
-      });
-      dietaryEls.forEach((el) => {
-        el.checked = false;
-      });
-      if (dietaryOtherEl) dietaryOtherEl.value = "";
+      beefCountEl.value = "0";
+      porkCountEl.value = "0";
+      vegetarianCountEl.value = "0";
+      childMealCountEl.value = "0";
       specialRequestEl.value = "";
       blessingEl.value = "";
 

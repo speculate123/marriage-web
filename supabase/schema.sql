@@ -4,15 +4,26 @@ create table if not exists public.rsvp_submissions (
   phone text not null check (phone ~ '^09[0-9]{8}$'),
   email text not null check (email ~ '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'),
   attendees integer not null check (attendees between 1 and 10),
-  meal_choice text,
-  dietary text,
+  beef_count integer not null default 0 check (beef_count between 0 and 10),
+  pork_count integer not null default 0 check (pork_count between 0 and 10),
+  vegetarian_count integer not null default 0 check (vegetarian_count between 0 and 10),
+  child_meal_count integer not null default 0 check (child_meal_count between 0 and 10),
   special_request text,
   blessing text,
   created_at timestamptz not null default now()
 );
 
 alter table public.rsvp_submissions
-add column if not exists meal_choice text;
+add column if not exists beef_count integer not null default 0;
+
+alter table public.rsvp_submissions
+add column if not exists pork_count integer not null default 0;
+
+alter table public.rsvp_submissions
+add column if not exists vegetarian_count integer not null default 0;
+
+alter table public.rsvp_submissions
+add column if not exists child_meal_count integer not null default 0;
 
 alter table public.rsvp_submissions
 add column if not exists email text;
@@ -22,6 +33,12 @@ add column if not exists special_request text;
 
 alter table public.rsvp_submissions
 add column if not exists blessing text;
+
+alter table public.rsvp_submissions
+drop column if exists meal_choice;
+
+alter table public.rsvp_submissions
+drop column if exists dietary;
 
 alter table public.rsvp_submissions enable row level security;
 
