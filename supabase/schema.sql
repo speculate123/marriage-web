@@ -3,7 +3,7 @@ create table if not exists public.rsvp_submissions (
   name text not null check (char_length(name) between 1 and 50),
   phone text not null check (phone ~ '^09[0-9]{8}$'),
   email text not null check (email ~ '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'),
-  attendees integer not null check (attendees between 1 and 10),
+  attendees integer not null check (attendees between 0 and 10),
   beef_count integer not null default 0 check (beef_count between 0 and 10),
   pork_count integer not null default 0 check (pork_count between 0 and 10),
   vegetarian_count integer not null default 0 check (vegetarian_count between 0 and 10),

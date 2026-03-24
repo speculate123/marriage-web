@@ -101,8 +101,8 @@
       return "電子郵件格式錯誤。";
     }
 
-    if (!Number.isInteger(payload.attendees) || payload.attendees < 1 || payload.attendees > 5) {
-      return "出席人數需為 1 到 5。";
+    if (!Number.isInteger(payload.attendees) || payload.attendees < 0 || payload.attendees > 5) {
+      return "出席人數需為無法出席或 1 到 5。";
     }
 
     if (
