@@ -122,10 +122,6 @@
       return "餐點數量格式錯誤，請使用 0 到 5。";
     }
 
-    if (payload.beefCount + payload.porkCount + payload.vegetarianCount + payload.childMealCount !== payload.attendees) {
-      return "餐點總數需等於出席人數。";
-    }
-
     return null;
   }
 
@@ -174,6 +170,15 @@
     if (validationError) {
       setStatus(validationError, "error");
       return;
+    }
+
+    const mealTotal = payload.beefCount + payload.porkCount + payload.vegetarianCount + payload.childMealCount;
+    if (mealTotal !== payload.attendees) {
+      const shouldContinue = window.confirm("提醒：餐點總數與出席人數不一致。按「確定」繼續送出，按「取消」返回修改。");
+      if (!shouldContinue) {
+        setStatus("已取消送出，請調整後再提交。", "error");
+        return;
+      }
     }
 
     submitBtn.dataset.submitting = "1";
