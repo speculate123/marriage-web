@@ -3,14 +3,14 @@ name: Keep Supabase Alive
 on:
   schedule:
     # Run at midnight (0 0 * *) on Sunday (0) and Friday(5)
-    - cron: '0/5 * * * *'
+    - cron: '0 0 * * 0,5'
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase Database
+      - name: Create Dummy Record
         run: |
           curl -X POST "https://twvmcxfsyuymioqifybj.supabase.co/rest/v1/rsvp_submissions" \
           -H "apikey: sb_publishable_-6OxrgCD3osaXiOQlMlmEQ_31Daxdr2" \
@@ -28,3 +28,16 @@ jobs:
             "special_request": "nothing",
             "blessing": "nothing"
           }'
+
+      - name: Ping Supabase Database
+        run: |
+          curl -X GET "https://twvmcxfsyuymioqifybj.supabase.co/rest/v1/rsvp_submissions?select=id&name=eq.keep_alive&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_SECRET_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SECRET_KEY }}"
+
+      - name: Delete Dummy Record
+        run: |
+          curl -X DELETE "https://twvmcxfsyuymioqifybj.supabase.co/rest/v1/rsvp_submissions?name=eq.keep_alive" \
+          -H "apikey: ${{ secrets.SUPABASE_SECRET_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SECRET_KEY }}"
+
