@@ -3,7 +3,7 @@ name: Keep Supabase Alive
 on:
   schedule:
     # Run at midnight (0 0 * *) on Sunday (0) and Friday(5)
-    - cron: '0 0 * * 0,5'
+    - cron: '0/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,19 @@ jobs:
     steps:
       - name: Ping Supabase Database
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/your_table_name?select=id&limit=1" \
-          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
+          curl -X POST "https://twvmcxfsyuymioqifybj.supabase.co/rest/v1/rsvp_submissions" \
+          -H "apikey: sb_publishable_-6OxrgCD3osaXiOQlMlmEQ_31Daxdr2" \
+          -H "Authorization: Bearer sb_publishable_-6OxrgCD3osaXiOQlMlmEQ_31Daxdr2" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "keep_alive",
+            "phone": "0912123123",
+            "email": "keep_alive@gmail.com",
+            "attendees": 10,
+            "beef_count": 1,
+            "pork_count": 2,
+            "vegetarian_count": 3,
+            "child_meal_count": 4,
+            "special_request": "nothing",
+            "blessing": "nothing"
+          }'
