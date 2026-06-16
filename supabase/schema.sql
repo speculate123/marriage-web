@@ -6,6 +6,7 @@ create table if not exists public.rsvp_submissions (
   attendees integer not null check (attendees between 0 and 10),
   beef_count integer not null default 0 check (beef_count between 0 and 10),
   pork_count integer not null default 0 check (pork_count between 0 and 10),
+  lobster_count integer not null default 0 check (lobster_count between 0 and 10),
   vegetarian_count integer not null default 0 check (vegetarian_count between 0 and 10),
   child_meal_count integer not null default 0 check (child_meal_count between 0 and 10),
   special_request text,
@@ -13,7 +14,14 @@ create table if not exists public.rsvp_submissions (
   created_at timestamptz not null default now()
 );
 
+alter table public.rsvp_submissions
+add column if not exists lobster_count integer not null default 0 check (lobster_count between 0 and 10);
+
 alter table public.rsvp_submissions drop constraint if exists rsvp_submissions_email_check;
+
+grant insert
+on table public.rsvp_submissions
+to anon;
 
 alter table public.rsvp_submissions enable row level security;
 

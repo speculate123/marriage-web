@@ -6,6 +6,7 @@
   const attendeesEl = document.querySelector('select[name="attendees"]');
   const beefCountEl = document.querySelector('select[name="beef_count"]');
   const porkCountEl = document.querySelector('select[name="pork_count"]');
+  const lobsterCountEl = document.querySelector('select[name="lobster_count"]');
   const vegetarianCountEl = document.querySelector('select[name="vegetarian_count"]');
   const childMealCountEl = document.querySelector('select[name="child_meal_count"]');
   const specialRequestEl = document.querySelector('textarea[name="special_request"]');
@@ -19,6 +20,7 @@
     !attendeesEl ||
     !beefCountEl ||
     !porkCountEl ||
+    !lobsterCountEl ||
     !vegetarianCountEl ||
     !childMealCountEl ||
     !specialRequestEl ||
@@ -76,7 +78,7 @@
 
   function syncMealOptions() {
     const attendees = parseNonNegativeInt(attendeesEl.value);
-    const mealSelects = [beefCountEl, porkCountEl, vegetarianCountEl, childMealCountEl];
+    const mealSelects = [beefCountEl, porkCountEl, lobsterCountEl, vegetarianCountEl, childMealCountEl];
 
     mealSelects.forEach((selectEl) => {
       const otherTotal = mealSelects
@@ -112,6 +114,9 @@
       !Number.isInteger(payload.porkCount) ||
       payload.porkCount < 0 ||
       payload.porkCount > 5 ||
+      !Number.isInteger(payload.lobsterCount) ||
+      payload.lobsterCount < 0 ||
+      payload.lobsterCount > 5 ||
       !Number.isInteger(payload.vegetarianCount) ||
       payload.vegetarianCount < 0 ||
       payload.vegetarianCount > 5 ||
@@ -137,6 +142,7 @@
   attendeesEl.addEventListener("change", syncMealOptions);
   beefCountEl.addEventListener("change", syncMealOptions);
   porkCountEl.addEventListener("change", syncMealOptions);
+  lobsterCountEl.addEventListener("change", syncMealOptions);
   vegetarianCountEl.addEventListener("change", syncMealOptions);
   childMealCountEl.addEventListener("change", syncMealOptions);
   syncMealOptions();
@@ -160,6 +166,7 @@
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
       beefCount: Number.parseInt(normalizeText(beefCountEl.value), 10),
       porkCount: Number.parseInt(normalizeText(porkCountEl.value), 10),
+      lobsterCount: Number.parseInt(normalizeText(lobsterCountEl.value), 10),
       vegetarianCount: Number.parseInt(normalizeText(vegetarianCountEl.value), 10),
       childMealCount: Number.parseInt(normalizeText(childMealCountEl.value), 10),
       specialRequest: normalizeText(specialRequestEl.value) || null,
@@ -172,7 +179,12 @@
       return;
     }
 
-    const mealTotal = payload.beefCount + payload.porkCount + payload.vegetarianCount + payload.childMealCount;
+    const mealTotal =
+      payload.beefCount +
+      payload.porkCount +
+      payload.lobsterCount +
+      payload.vegetarianCount +
+      payload.childMealCount;
     if (mealTotal !== payload.attendees) {
       const shouldContinue = window.confirm("提醒：餐點總數與出席人數不一致。按「確定」繼續送出，按「取消」返回修改。");
       if (!shouldContinue) {
@@ -202,6 +214,7 @@
           attendees: payload.attendees,
           beef_count: payload.beefCount,
           pork_count: payload.porkCount,
+          lobster_count: payload.lobsterCount,
           vegetarian_count: payload.vegetarianCount,
           child_meal_count: payload.childMealCount,
           special_request: payload.specialRequest,
@@ -221,6 +234,7 @@
       attendeesEl.value = "";
       beefCountEl.value = "0";
       porkCountEl.value = "0";
+      lobsterCountEl.value = "0";
       vegetarianCountEl.value = "0";
       childMealCountEl.value = "0";
       specialRequestEl.value = "";
