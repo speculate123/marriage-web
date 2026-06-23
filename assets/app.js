@@ -1,6 +1,7 @@
 (() => {
   const submitBtn = document.querySelector('a[href^="xiumish://form.opera/cubes/current/submit"]');
   const nameEl = document.querySelector('input[name="name"]');
+  const guestNicknamesEl = document.querySelector('textarea[name="guest_nicknames"]');
   const phoneEl = document.querySelector('input[name="phone"]');
   const emailEl = document.querySelector('input[name="email"]');
   const attendeesEl = document.querySelector('select[name="attendees"]');
@@ -15,6 +16,7 @@
   if (
     !submitBtn ||
     !nameEl ||
+    !guestNicknamesEl ||
     !phoneEl ||
     !emailEl ||
     !attendeesEl ||
@@ -63,6 +65,14 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
+  function normalizeMultilineText(value) {
+    return String(value || "")
+      .split(/[，,、\s]+/u)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
   function parseNonNegativeInt(value) {
     const parsed = Number.parseInt(normalizeText(value), 10);
     return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
@@ -90,9 +100,21 @@
     });
   }
 
+  function syncGuestNicknamesRequired() {
+    guestNicknamesEl.required = parseNonNegativeInt(attendeesEl.value) > 0;
+  }
+
   function validate(payload) {
     if (!payload.name || payload.name.length > 50) {
       return "姓名為必填，且不得超過 50 字。";
+    }
+
+    if (payload.attendees > 0 && !payload.guestNicknames) {
+      return "請填寫每一位會出席賓客的暱稱。";
+    }
+
+    if (payload.guestNicknames && payload.guestNicknames.length > 300) {
+      return "出席賓客暱稱不得超過 300 字。";
     }
 
     if (!/^09\d{8}$/.test(payload.phone)) {
@@ -140,12 +162,14 @@
   }
 
   attendeesEl.addEventListener("change", syncMealOptions);
+  attendeesEl.addEventListener("change", syncGuestNicknamesRequired);
   beefCountEl.addEventListener("change", syncMealOptions);
   porkCountEl.addEventListener("change", syncMealOptions);
   lobsterCountEl.addEventListener("change", syncMealOptions);
   vegetarianCountEl.addEventListener("change", syncMealOptions);
   childMealCountEl.addEventListener("change", syncMealOptions);
   syncMealOptions();
+  syncGuestNicknamesRequired();
 
   submitBtn.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -161,6 +185,7 @@
 
     const payload = {
       name: normalizeText(nameEl.value),
+      guestNicknames: normalizeMultilineText(guestNicknamesEl.value) || null,
       phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
       email: normalizeText(emailEl.value).toLowerCase(),
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
@@ -209,6 +234,7 @@
         },
         body: JSON.stringify({
           name: payload.name,
+          guest_nicknames: payload.guestNicknames,
           phone: payload.phone,
           email: payload.email,
           attendees: payload.attendees,
@@ -229,6 +255,7 @@
 
       localStorage.setItem(cooldownKey, String(Date.now()));
       nameEl.value = "";
+      guestNicknamesEl.value = "";
       phoneEl.value = "";
       emailEl.value = "";
       attendeesEl.value = "";
@@ -239,6 +266,7 @@
       childMealCountEl.value = "0";
       specialRequestEl.value = "";
       blessingEl.value = "";
+      syncGuestNicknamesRequired();
 
       setStatus("送出成功，謝謝你的回覆。", "ok");
     } catch (error) {
