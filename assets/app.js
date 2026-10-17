@@ -1,7 +1,8 @@
 (() => {
   const submitBtn = document.querySelector('a[href^="xiumish://form.opera/cubes/current/submit"]');
   const nameEl = document.querySelector('input[name="name"]');
-  const guestNicknamesEl = document.querySelector('textarea[name="guest_nicknames"]');
+  const guestNicknamesGroupEl = document.getElementById("rsvp-guest-nicknames-group");
+  const guestNicknamesEl = document.getElementById("rsvp-guest-nicknames");
   const phoneEl = document.querySelector('input[name="phone"]');
   const emailEl = document.querySelector('input[name="email"]');
   const attendeesEl = document.querySelector('select[name="attendees"]');
@@ -16,6 +17,7 @@
   if (
     !submitBtn ||
     !nameEl ||
+    !guestNicknamesGroupEl ||
     !guestNicknamesEl ||
     !phoneEl ||
     !emailEl ||
@@ -65,14 +67,6 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
-  function normalizeMultilineText(value) {
-    return String(value || "")
-      .split(/[，,、\s]+/u)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join("\n");
-  }
-
   function parseNonNegativeInt(value) {
     const parsed = Number.parseInt(normalizeText(value), 10);
     return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
@@ -100,17 +94,41 @@
     });
   }
 
-  function syncGuestNicknamesRequired() {
-    guestNicknamesEl.required = parseNonNegativeInt(attendeesEl.value) > 0;
+  function syncGuestNicknameInputs() {
+    const companionCount = Math.max(0, parseNonNegativeInt(attendeesEl.value) - 1);
+
+    while (guestNicknamesEl.children.length > companionCount) {
+      guestNicknamesEl.lastElementChild.remove();
+    }
+
+    while (guestNicknamesEl.children.length < companionCount) {
+      const companionNumber = guestNicknamesEl.children.length + 1;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.id = `rsvp-companion-nickname-${companionNumber}`;
+      input.name = "companion_nickname";
+      input.className = "tn-cell-input-text rsvp-companion-nickname";
+      input.placeholder = `同伴 ${companionNumber} 的暱稱`;
+      input.required = true;
+      input.maxLength = 300;
+      input.setAttribute("aria-label", input.placeholder);
+      input.setAttribute("aria-describedby", "rsvp-guest-nicknames-help");
+      guestNicknamesEl.appendChild(input);
+    }
+
+    guestNicknamesGroupEl.hidden = companionCount === 0;
   }
 
-  function validate(payload) {
+  function validate(payload, companionNicknames) {
     if (!payload.name || payload.name.length > 50) {
       return "姓名為必填，且不得超過 50 字。";
     }
 
-    if (payload.attendees > 0 && !payload.guestNicknames) {
-      return "請填寫每一位會出席賓客的暱稱。";
+    if (
+      payload.attendees > 1 &&
+      (companionNicknames.length !== payload.attendees - 1 || companionNicknames.some((nickname) => !nickname))
+    ) {
+      return "請填寫每一位會到場賓客的暱稱。";
     }
 
     if (payload.guestNicknames && payload.guestNicknames.length > 300) {
@@ -162,14 +180,14 @@
   }
 
   attendeesEl.addEventListener("change", syncMealOptions);
-  attendeesEl.addEventListener("change", syncGuestNicknamesRequired);
+  attendeesEl.addEventListener("change", syncGuestNicknameInputs);
   beefCountEl.addEventListener("change", syncMealOptions);
   porkCountEl.addEventListener("change", syncMealOptions);
   lobsterCountEl.addEventListener("change", syncMealOptions);
   vegetarianCountEl.addEventListener("change", syncMealOptions);
   childMealCountEl.addEventListener("change", syncMealOptions);
   syncMealOptions();
-  syncGuestNicknamesRequired();
+  syncGuestNicknameInputs();
 
   submitBtn.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -183,9 +201,10 @@
       return;
     }
 
+    const companionNicknames = Array.from(guestNicknamesEl.querySelectorAll("input"), (input) => normalizeText(input.value));
     const payload = {
       name: normalizeText(nameEl.value),
-      guestNicknames: normalizeMultilineText(guestNicknamesEl.value) || null,
+      guestNicknames: companionNicknames.join("\n") || null,
       phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
       email: normalizeText(emailEl.value).toLowerCase(),
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
@@ -198,7 +217,7 @@
       blessing: normalizeText(blessingEl.value) || null,
     };
 
-    const validationError = validate(payload);
+    const validationError = validate(payload, companionNicknames);
     if (validationError) {
       setStatus(validationError, "error");
       return;
@@ -255,7 +274,6 @@
 
       localStorage.setItem(cooldownKey, String(Date.now()));
       nameEl.value = "";
-      guestNicknamesEl.value = "";
       phoneEl.value = "";
       emailEl.value = "";
       attendeesEl.value = "";
@@ -266,7 +284,7 @@
       childMealCountEl.value = "0";
       specialRequestEl.value = "";
       blessingEl.value = "";
-      syncGuestNicknamesRequired();
+      syncGuestNicknameInputs();
 
       setStatus("送出成功，謝謝你的回覆。", "ok");
     } catch (error) {
