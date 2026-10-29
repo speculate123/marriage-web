@@ -6,6 +6,7 @@
   const phoneEl = document.querySelector('input[name="phone"]');
   const emailEl = document.querySelector('input[name="email"]');
   const attendeesEl = document.querySelector('select[name="attendees"]');
+  const attendanceDetailsEl = document.getElementById("rsvp-attendance-details");
   const beefCountEl = document.querySelector('select[name="beef_count"]');
   const porkCountEl = document.querySelector('select[name="pork_count"]');
   const lobsterCountEl = document.querySelector('select[name="lobster_count"]');
@@ -22,6 +23,7 @@
     !phoneEl ||
     !emailEl ||
     !attendeesEl ||
+    !attendanceDetailsEl ||
     !beefCountEl ||
     !porkCountEl ||
     !lobsterCountEl ||
@@ -119,6 +121,12 @@
     guestNicknamesGroupEl.hidden = companionCount === 0;
   }
 
+  function syncAttendanceFields() {
+    attendanceDetailsEl.hidden = parseNonNegativeInt(attendeesEl.value) === 0;
+    syncMealOptions();
+    syncGuestNicknameInputs();
+  }
+
   function validate(payload, companionNicknames) {
     if (!payload.name || payload.name.length > 50) {
       return "姓名為必填，且不得超過 50 字。";
@@ -179,15 +187,13 @@
     return Date.now() - last < cooldownMs;
   }
 
-  attendeesEl.addEventListener("change", syncMealOptions);
-  attendeesEl.addEventListener("change", syncGuestNicknameInputs);
+  attendeesEl.addEventListener("change", syncAttendanceFields);
   beefCountEl.addEventListener("change", syncMealOptions);
   porkCountEl.addEventListener("change", syncMealOptions);
   lobsterCountEl.addEventListener("change", syncMealOptions);
   vegetarianCountEl.addEventListener("change", syncMealOptions);
   childMealCountEl.addEventListener("change", syncMealOptions);
-  syncMealOptions();
-  syncGuestNicknameInputs();
+  syncAttendanceFields();
 
   submitBtn.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -213,7 +219,7 @@
       lobsterCount: Number.parseInt(normalizeText(lobsterCountEl.value), 10),
       vegetarianCount: Number.parseInt(normalizeText(vegetarianCountEl.value), 10),
       childMealCount: Number.parseInt(normalizeText(childMealCountEl.value), 10),
-      specialRequest: normalizeText(specialRequestEl.value) || null,
+      specialRequest: parseNonNegativeInt(attendeesEl.value) > 0 ? normalizeText(specialRequestEl.value) || null : null,
       blessing: normalizeText(blessingEl.value) || null,
     };
 
@@ -284,7 +290,7 @@
       childMealCountEl.value = "0";
       specialRequestEl.value = "";
       blessingEl.value = "";
-      syncGuestNicknameInputs();
+      syncAttendanceFields();
 
       setStatus("送出成功，謝謝你的回覆。", "ok");
     } catch (error) {
