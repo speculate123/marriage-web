@@ -7,6 +7,7 @@
   const emailEl = document.querySelector('input[name="email"]');
   const attendeesEl = document.querySelector('select[name="attendees"]');
   const attendanceDetailsEl = document.getElementById("rsvp-attendance-details");
+  const attendingCeremonyEl = document.querySelector('select[name="attending_ceremony"]');
   const beefCountEl = document.querySelector('select[name="beef_count"]');
   const porkCountEl = document.querySelector('select[name="pork_count"]');
   const lobsterCountEl = document.querySelector('select[name="lobster_count"]');
@@ -24,6 +25,7 @@
     !emailEl ||
     !attendeesEl ||
     !attendanceDetailsEl ||
+    !attendingCeremonyEl ||
     !beefCountEl ||
     !porkCountEl ||
     !lobsterCountEl ||
@@ -122,7 +124,13 @@
   }
 
   function syncAttendanceFields() {
-    attendanceDetailsEl.hidden = parseNonNegativeInt(attendeesEl.value) === 0;
+    const isAttending = parseNonNegativeInt(attendeesEl.value) > 0;
+    attendanceDetailsEl.hidden = !isAttending;
+    attendingCeremonyEl.disabled = !isAttending;
+    attendingCeremonyEl.required = isAttending;
+    if (!isAttending) {
+      attendingCeremonyEl.value = "";
+    }
     syncMealOptions();
     syncGuestNicknameInputs();
   }
@@ -153,6 +161,10 @@
 
     if (!Number.isInteger(payload.attendees) || payload.attendees < 0 || payload.attendees > 5) {
       return "出席人數需為無法出席或 1 到 5。";
+    }
+
+    if (payload.attendees > 0 && !["一定到場", "努力安排", "無法出席"].includes(payload.attendingCeremony)) {
+      return "請選擇是否參加證婚。";
     }
 
     if (
@@ -214,6 +226,9 @@
       phone: normalizeText(phoneEl.value).replace(/[^\d]/g, ""),
       email: normalizeText(emailEl.value).toLowerCase(),
       attendees: Number.parseInt(normalizeText(attendeesEl.value), 10),
+      attendingCeremony: parseNonNegativeInt(attendeesEl.value) > 0 && attendingCeremonyEl.value !== ""
+        ? attendingCeremonyEl.value
+        : null,
       beefCount: Number.parseInt(normalizeText(beefCountEl.value), 10),
       porkCount: Number.parseInt(normalizeText(porkCountEl.value), 10),
       lobsterCount: Number.parseInt(normalizeText(lobsterCountEl.value), 10),
@@ -263,6 +278,7 @@
           phone: payload.phone,
           email: payload.email,
           attendees: payload.attendees,
+          attending_ceremony: payload.attendingCeremony,
           beef_count: payload.beefCount,
           pork_count: payload.porkCount,
           lobster_count: payload.lobsterCount,

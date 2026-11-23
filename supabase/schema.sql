@@ -5,6 +5,7 @@ create table if not exists public.rsvp_submissions (
   phone text not null check (phone ~ '^09[0-9]{8}$'),
   email text not null,
   attendees integer not null check (attendees between 0 and 10),
+  attending_ceremony text check (attending_ceremony in ('一定到場', '努力安排', '無法出席')),
   beef_count integer not null default 0 check (beef_count between 0 and 10),
   pork_count integer not null default 0 check (pork_count between 0 and 10),
   lobster_count integer not null default 0 check (lobster_count between 0 and 10),
@@ -21,11 +22,19 @@ add column if not exists lobster_count integer not null default 0 check (lobster
 alter table public.rsvp_submissions
 add column if not exists guest_nicknames text;
 
+-- NULL represents an unanswered question (existing submissions) or non-attendance.
+alter table public.rsvp_submissions
+add column if not exists attending_ceremony text check (attending_ceremony in ('一定到場', '努力安排', '無法出席'));
+
 alter table public.rsvp_submissions drop constraint if exists rsvp_submissions_email_check;
 
 grant insert
 on table public.rsvp_submissions
 to anon;
+
+grant select, insert, update, delete
+on table public.rsvp_submissions
+to service_role;
 
 alter table public.rsvp_submissions enable row level security;
 
